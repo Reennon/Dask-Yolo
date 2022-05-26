@@ -1,13 +1,14 @@
 import numpy as np
+from typing import List
 
 
 class VideoLoader:
     def __init__(self, labels_input: str):
         self.labels_input = labels_input
-        self.labels: list[str] = []
+        self.labels: List[str] = []
 
-    def read_labels(self) -> list[str]:
-        labels: list[str] = open(self.labels_input)\
+    def read_labels(self) -> List[str]:
+        labels: List[str] = open(self.labels_input)\
             .read()\
             .strip()\
             .split("\n")

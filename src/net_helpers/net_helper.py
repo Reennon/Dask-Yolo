@@ -15,8 +15,7 @@ class NetLoader:
 
         layer_names = _net.getLayerNames()
 
-        print(_net.getUnconnectedOutLayers())
-        print([layer_names[32]])
+
 
         layer_names = [layer_names[i - 1] for i in _net.getUnconnectedOutLayers()]
 
