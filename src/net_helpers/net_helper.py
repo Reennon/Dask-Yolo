@@ -1,4 +1,7 @@
+from copy import copy
+
 import cv2
+import dask
 
 
 class NetLoader:
@@ -14,8 +17,6 @@ class NetLoader:
         _net = self.net
 
         layer_names = _net.getLayerNames()
-
-
 
         layer_names = [layer_names[i - 1] for i in _net.getUnconnectedOutLayers()]
 

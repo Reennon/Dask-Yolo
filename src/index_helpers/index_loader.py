@@ -9,9 +9,11 @@ from src.detection_helpers.detection_box import DetectionBox
 
 class IndexLoader:
     def __init__(self, confidence_threshold: float):
+        self.classIDs = None
+        self.confidences = None
+        self.boxes = None
         self.confidence_threshold = confidence_threshold
         self.detections: List[DetectionBox] = []
-
 
     def load_detection_box_per_detection_per_frame(self, detection, frame_shape) -> DetectionBox:
         frame_width, frame_height = frame_shape
@@ -53,8 +55,7 @@ class IndexLoader:
 
             return detection_box
 
-
-    def extract_detections(self, output_layer, image_shape: Tuple[int, int]):
+    def extract_detections(self, output_layer, image_shape: Tuple[int, int]) -> list[DetectionBox]:
         """
         Extracts detections from net's output layer on passed image shape
 
@@ -80,15 +81,12 @@ class IndexLoader:
                     frame_shape=image_shape
                 )
 
-
                 if detection_box is None:
                     continue
 
-
                 _detections.append(detection_box)
 
-
-        self.boxes=[]
+        self.boxes = []
         self.confidences = []
         self.classIDs = []
         for i in _detections:
@@ -97,9 +95,8 @@ class IndexLoader:
             self.boxes.append([i.box_x, i.box_y, int(i.box_width), int(i.box_height)])
             self.confidences.append(float(i.detection_confidence))
             self.classIDs.append(i.detection_class_id)
-        idx =  cv2.dnn.NMSBoxes(self.boxes, self.confidences, self.confidence_threshold,
-                         self.confidence_threshold)
-        return idx , self.boxes, self.confidences,self.classIDs
+        idx = cv2.dnn.NMSBoxes(self.boxes, self.confidences, self.confidence_threshold, self.confidence_threshold)
+        return idx, self.boxes, self.confidences, self.classIDs
 
 
 

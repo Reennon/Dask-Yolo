@@ -1,3 +1,6 @@
+import datetime
+
+import cv2
 import numpy as np
 from typing import List
 
@@ -17,7 +20,6 @@ class VideoLoader:
 
         return labels
 
-
     def read_colors(self):
         _labels = self.labels
 
@@ -32,3 +34,12 @@ class VideoLoader:
         )
 
         return colors
+
+    @staticmethod
+    def write_video(frames: list, file: str):
+        writer = cv2.VideoWriter(file, cv2.VideoWriter_fourcc(*"mp4v"), 30, (1280, 720))
+        for i in range(0, len(frames)):
+            resize = cv2.resize(frames[i], (1280, 720))
+            writer.write(resize)
+            print(f'{datetime.datetime.now()} Written {i}th frame')
+        writer.release()

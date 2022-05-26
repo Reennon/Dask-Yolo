@@ -1,6 +1,8 @@
 import cv2
 from typing import List
 
+import dask
+
 from src.detection_helpers.detection_box import DetectionBox
 
 
@@ -9,22 +11,41 @@ class DetectionDrawer:
         self.colors = colors
         self.labels = labels
 
+    @dask.delayed
+    def draw_detection(self, id: str, frame, class_id, confidence, box):
+        (x, y) = (box[0], box[1])
+        (w, h) = (box[2], box[3])
+
+        color = [int(c) for c in self.colors[class_id]]
+
+        cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+        text = "{}|{}: {:.4f}".format(id, self.labels[class_id], confidence)
+        cv2.putText(frame, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5, color, 2)
+
     def draw_detections(self, detections: List[DetectionBox], frame):
-        idxs , boxes, confidences,classIDs = detections
+        idxs, boxes, confidences, class_ids = detections
+
         if len(idxs) > 0:
             # loop over the indexes we are keeping
-
+            drawn_detections = []
             for i in idxs.flatten():
                 # extract the bounding box coordinates
-                (x, y) = (boxes[i][0], boxes[i][1])
-                (w, h) = (boxes[i][2], boxes[i][3])
+                class_id = class_ids[i]
+                confidence = confidences[i]
+                box = boxes[i]
+                drawn_detection = self.draw_detection(
+                    id=i,
+                    class_id=class_id,
+                    confidence=confidence,
+                    box=box,
+                    frame=frame
+                )
 
-                color = [int(c) for c in self.colors[classIDs[i]]]
+                drawn_detections.append(drawn_detection)
 
-                cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-                text = "{}|{}: {:.4f}".format(i,self.labels[classIDs[i]], confidences[i])
-                cv2.putText(frame, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,
-                            0.5, color, 2)
+            dask.compute(*drawn_detections)
+
         return frame
 
 
