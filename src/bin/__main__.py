@@ -16,7 +16,7 @@ from src.detection_helpers.detection_drawer import DetectionDrawer
 from src.index_helpers.index_loader import IndexLoader
 from src.net_helpers.net_helper import NetLoader
 from src.video_helpers.video_loader import VideoLoader
-from dask.distributed import Client
+
 import logging
 
 
@@ -34,19 +34,19 @@ class Extractor:
         #client = Client(n_workers=12)
         np.random.seed(4)
         self.video_loader = VideoLoader(
-            labels_input='./src/bin/coco.names',
+            labels_input='coco.names',
         )
-        chunk = 1
+        chunk = 5
         self.net_loader = [NetLoader(
-            config='./darknet/cfg/yolov3-spp.cfg',
-            weights='./weights/yolov3spp/yolov3-spp.weights',
+            config='../../darknet/cfg/yolov3-spp.cfg',
+            weights='/home/stepan/Desktop/projects/AI/labs/SPC/Dask-Yolo/yolov3spp/yolov3-spp.weights',
         ) for _ in range(chunk)]
 
         self.labels = self.video_loader.read_labels()
         self.colors = self.video_loader.read_colors()
 
         # define a video capture object
-        vid = cv2.VideoCapture('./videos/2.mp4')
+        vid = cv2.VideoCapture('../../videos/2.mp4')
         ret, frame = vid.read()
         image = frame.copy()
         (H, W) = image.shape[:2]
@@ -66,11 +66,12 @@ class Extractor:
         print(f'video read time {datetime.now() - timestamp1}')
         vid.release()
 
-
+        frame_need = 34
         parallel = 1
         if parallel:
             computed = []
-            for i in range(int(len(self.frames[:300])/chunk)):
+            full_count = int(len(self.frames[:frame_need])//chunk)
+            for i in range(full_count):
                 frames = self.frames[i * chunk: (i+1) * chunk]
                 print(f'{datetime.now()} Chunk: {i} Frames: {i * chunk, (i+1) * chunk}')
                 j = 0
@@ -90,13 +91,33 @@ class Extractor:
                     extracted.append(extracted_frame)
 
                 computed.extend(dask.compute(*extracted))
+            if int(len(self.frames[:frame_need])%chunk) != 0:
+                last_frames = int(len(self.frames[:frame_need])%chunk)
+                frames = self.frames[-last_frames:]
+                print(f'{datetime.now()} Chunk: last Frames: {(i+1) * chunk , (i+1) * chunk + last_frames}')
+                j = 0
+                extracted = []
+                #print((i) * chunk, (i+1) * chunk)
+                for frame, net in zip(frames, self.net_loader):
+                    j += 1
+                    image = frame.copy()
+                    image_shape = image.shape[:2]
 
+                    extracted_frame = self.extract_parallel(
+                        net=net,
+                        image=image,
+                        frame=frame
+                    )
+                    print(f'{j} frame extract time {datetime.now() - timestamp1}')
+                    extracted.append(extracted_frame)
+
+                computed.extend(dask.compute(*extracted))
             print(len(extracted))
             #print(extracted.visualize())
             #visualize(*extracted)
             #extracted = dask.compute(*extracted)
         else:
-            for frame in self.frames[:20]:
+            for frame in self.frames[:frame_need]:
                 i += 1
 
                 image = frame.copy()
@@ -108,7 +129,7 @@ class Extractor:
 
             print(len(extracted))
 
-        VideoLoader.write_video(computed, './videos/output/output.mp4')
+        VideoLoader.write_video(computed, '../../videos/output/output.mp4')
 
         print(f'video exract all time {datetime.now() - timestamp1}')
 
